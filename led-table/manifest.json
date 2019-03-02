@@ -1,7 +1,7 @@
 {
   "name": "LED Table",
   "short_name": "led-table",
-  "theme_color": "#1976d2",
+  "theme_color": "#101113",
   "background_color": "#fafafa",
   "display": "standalone",
   "scope": "./",
