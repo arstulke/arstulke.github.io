@@ -1,6 +1,6 @@
 {
   "name": "LED Table",
-  "short_name": "led-table",
+  "short_name": "LED Table",
   "theme_color": "#101113",
   "background_color": "#fafafa",
   "display": "standalone",
