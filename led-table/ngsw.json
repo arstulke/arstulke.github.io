@@ -10,9 +10,12 @@
         "./favicon.ico",
         "./index.html",
         "./main.3ab0753bf17c299e88f1.js",
+        "./ngsw-worker.js",
         "./polyfills.3c65eef2006010142485.js",
         "./runtime.26209474bfa8dc87a77c.js",
-        "./styles.02dcd9657220910797c8.css"
+        "./safety-worker.js",
+        "./styles.02dcd9657220910797c8.css",
+        "./worker-basic.min.js"
       ],
       "patterns": []
     },
@@ -46,9 +49,12 @@
     "./favicon.ico": "cc201c49a2f56ad57b197bd45d6d63d6528634db",
     "./index.html": "c147652064dc6ab82596d60485743a51004089f4",
     "./main.3ab0753bf17c299e88f1.js": "3495d6371493ea6df258af0820dc34af83eb740c",
+    "./ngsw-worker.js": "3319d9160c026713b51424491ce969fd78b27a90",
     "./polyfills.3c65eef2006010142485.js": "15908e0a700455b9081f76eaa9925d3d5c637a4a",
     "./runtime.26209474bfa8dc87a77c.js": "b62956c2192bfe5516d6374e753773901ed50ec5",
-    "./styles.02dcd9657220910797c8.css": "f497143f4fe30267de44d7f1fd732cf852abff81"
+    "./safety-worker.js": "ae5c8be3955e38edeeec09ed94b63d1e57f003c9",
+    "./styles.02dcd9657220910797c8.css": "f497143f4fe30267de44d7f1fd732cf852abff81",
+    "./worker-basic.min.js": "ae5c8be3955e38edeeec09ed94b63d1e57f003c9"
   },
   "navigationUrls": [
     {
