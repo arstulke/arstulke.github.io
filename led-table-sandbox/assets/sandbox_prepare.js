@@ -105,6 +105,125 @@ function require(moduleName) {
         modules['color-convert'] = convert;
     })();
 
+    const SharedUtil = await (async function () {
+        class SharedUtil {
+            static random(min, max) {
+                min = typeof min === 'number' ? min : (0.0);
+                max = typeof max === 'number' ? max : (min + 1.0);
+                return (Math.random() * (max - min)) + min;
+            }
+
+            static limit(val, min, max) {
+                if (typeof max === 'number') {
+                    val = Math.min(val, max);
+                }
+                if (typeof min === 'number') {
+                    val = Math.max(val, min);
+                }
+                return val;
+            }
+        }
+
+        return SharedUtil;
+    })();
+
+    const Timer = await (async function () {
+        class Timer {
+            static randomInterval(func, minTime, maxTime) {
+                return new Timer(func, () => SharedUtil.random(minTime, maxTime), null, 0);
+            }
+
+            static interval(func, time, initialDelay) {
+                return new Timer(func, () => time, null, initialDelay || 0);
+            }
+
+            static stopAllTimersAndTimeouts() {
+                Timer.timeouts
+                    .filter((timeout) => timeout && timeout.stop && typeof timeout.stop === 'function')
+                    .forEach((timeout) => timeout.stop());
+            }
+
+            static timeout(func, time) {
+                const timeout = { stop() { this.preventStart = true; } };
+                timeout.result = new Promise((resolve) => {
+                    if (!this.preventStart) {
+                        const timeoutId = setTimeout(() => {
+                            func();
+                            resolve();
+                        }, time);
+                        timeout.stop = () => clearTimeout(timeoutId);
+                    }
+                });
+                Timer.timeouts.push(timeout);
+                return timeout;
+            }
+
+            constructor(func, timeFunc, maxTimes, initialDelay) {
+                this.func = func;
+                this.timeFunc = timeFunc;
+                this.maxTimes = maxTimes;
+                this.initialDelay = initialDelay;
+                this.start();
+            }
+
+            async start() {
+                if (typeof this.initialDelay === 'number') {
+                    if (this.initialDelay <= 0) {
+                        this.func();
+                    } else if (this.initialDelay > 0) {
+                        const timeout = Timer.timeout(this.func, this.initialDelay);
+                        this.timeout = timeout;
+                        await timeout.result;
+                    }
+                }
+
+                for (this.times = 0; (this.maxTimes === null || this.times < this.maxTimes); this.times++) {
+                    const time = this.timeFunc(this.times);
+                    const timeout = Timer.timeout(this.func, time);
+                    this.timeout = timeout;
+                    await timeout.result;
+                }
+            }
+
+            stop() {
+                if (this.timeout) {
+                    this.timeout.stop();
+                }
+            }
+        }
+        Timer.timeouts = [];
+
+        return Timer;
+    })();
+
+    const TransitionHelper = await (async function () {
+        class TransitionHelper {
+
+            constructor(updatesPerSecond) {
+                this.timer = Timer.interval(() => {
+                    this.update();
+                }, Math.floor(1000 / updatesPerSecond), 10);
+                this.transitions = {};
+                this.transitionCounter = 0;
+            }
+
+            update() { }
+
+            addTransition(fromState, targetState, time, id) {
+                const key = this.transitionCounter++;
+                const start = new Date().getTime();
+                this.transitions[key] = { fromState, targetState, start, end: start + time, id };
+                return key;
+            }
+
+            stop() {
+                this.timer.stop();
+            }
+        }
+
+        return TransitionHelper;
+    })();
+
     const Color = await (async function () {
         const convert = require('color-convert');
 
@@ -124,6 +243,10 @@ function require(moduleName) {
         function Color(obj) {
             //TODO convert hexstring to rgbobj
             obj = convertColor(obj);
+            for (let key in obj) {
+                const val = obj[key];
+                obj[key] = Math.floor(val);
+            }
             Object.assign(this, { red: 0, green: 0, blue: 0 }, obj);
         }
 
@@ -135,23 +258,22 @@ function require(moduleName) {
             const hsbColor = this.toHsv();
             hsbColor.bri = hsbColor.bri * brightness;
             return new Color(hsbColor);
-        }
+        };
 
         Color.prototype.toHsb = function () {
             const rgbArr = this.toRGBArray();
             const hsvArr = convert.rgb.hsv(rgbArr);
             return { hue: hsvArr[0], sat: hsvArr[1], bri: hsvArr[2] };
-        }
+        };
 
         Color.prototype.toRGBArray = function () {
             return [this.red, this.green, this.blue];
         };
 
-        classes.Color = Color;
         return Color;
     })();
 
-    await (async function () {
+    const Frame = await (async function () {
         function Frame() {
             this.data = {};
         }
@@ -172,7 +294,7 @@ function require(moduleName) {
                     return col[y];
                 }
             }
-            return new Color({red: 0, green: 0, blue: 0});
+            return undefined;
         }
 
         Frame.prototype.fill = function (display, color) {
@@ -203,21 +325,116 @@ function require(moduleName) {
             Object.keys(this.data).forEach(x => {
                 x = parseInt(x);
                 const col = this.data[x];
-                Object.keys(col).forEach(y => {
-                    y = parseInt(y);
+                try {
+                    Object.keys(col).forEach(y => {
+                        y = parseInt(y);
 
-                    let cell = col[y];
-                    if (cell && cell.toRGBArray && typeof cell.toRGBArray === 'function') {
-                        const pixelIndex = getPixelIndex(x, y);
-                        obj[pixelIndex] = cell.toRGBArray();
-                    }
-                });
+                        let cell = col[y];
+                        if (cell && cell.toRGBArray && typeof cell.toRGBArray === 'function') {
+                            const pixelIndex = getPixelIndex(x, y);
+                            obj[pixelIndex] = cell.toRGBArray();
+                        }
+                    });
+                } catch (err) {
+                    console.error(this.data);
+                    throw err;
+                }
             });
 
             return obj;
         }
 
-        classes.Frame = Frame;
         return Frame;
     })();
+
+    const DomainUtil = await (async function () {
+        class DomainUtil {
+            static calcNumericTransition(fromState, targetState, start, end, time) {
+                const timePassed = time - start;
+                const totalDuration = end - start;
+
+                const totalNumDiff = targetState - fromState;
+                const numDiffForNow = fromState + (totalNumDiff * (timePassed / totalDuration));
+                return numDiffForNow;
+            }
+
+            static calcColorRGBTransition(fromColor, targetColor, start, end, time) {
+                const red = DomainUtil.calcNumericTransition(fromColor.red, targetColor.red, start, end, time);
+                const green = DomainUtil.calcNumericTransition(fromColor.green, targetColor.green, start, end, time);
+                const blue = DomainUtil.calcNumericTransition(fromColor.blue, targetColor.blue, start, end, time);
+
+                return new Color({ red, green, blue });
+            }
+
+            static calcColorHSBTransition(fromColor, targetColor, start, end, time) {
+                fromColor = fromColor.toHsb();
+                targetColor = targetColor.toHsb();
+                const hue = DomainUtil.calcNumericTransition(fromColor.hue, targetColor.hue, start, end, time);
+                const sat = DomainUtil.calcNumericTransition(fromColor.sat, targetColor.sat, start, end, time);
+                const bri = DomainUtil.calcNumericTransition(fromColor.bri, targetColor.bri, start, end, time);
+
+                return new Color({ hue, sat, bri });
+            }
+        }
+
+        return DomainUtil;
+    })();
+
+    const Fader = await (async function () {
+        class Fader extends TransitionHelper {
+
+            constructor(updatesPerSecond, display, fallbackStartColor) {
+                super(updatesPerSecond);
+                this.display = display;
+                this.frame = new Frame();
+                this.fallbackStartColor = fallbackStartColor || new Color({ red: 0, green: 0, blue: 0 });
+
+                for (let x = 0; x < display.width; x++) {
+                    for (let y = 0; y < display.height; y++) {
+                        this.frame.setPixel(x, y, this.fallbackStartColor);
+                    }
+                }
+                this.display.applyFrame(this.frame);
+            }
+
+            update() {
+                const time = new Date().getTime();
+
+                const keys = Object.keys(this.transitions).sort();
+                for (let transitionKey of keys) {
+                    const transition = this.transitions[transitionKey];
+
+                    if (time >= transition.end) {
+                        const targetColor = transition.targetState;
+                        const id = transition.id;
+                        this.frame.setPixel(id.x, id.y, targetColor);
+                        delete this.transitions[transitionKey];
+                    } else {
+                        const fromColor = transition.fromState;
+                        const targetColor = transition.targetState;
+                        const start = transition.start;
+                        const end = transition.end;
+                        const id = transition.id;
+
+                        const colorForNow = DomainUtil.calcColorRGBTransition(fromColor, targetColor, start, end, time);
+                        this.frame.setPixel(id.x, id.y, colorForNow);
+                    }
+                }
+
+                this.display.applyFrame(this.frame);
+            }
+
+            addTransition(x, y, targetColor, time) {
+                const currentColor = this.frame.getPixel(x, y) || this.fallbackStartColor;
+                return super.addTransition(currentColor, targetColor, time, { x, y });
+            }
+        }
+
+        return Fader;
+    })();
+
+    Object.assign(classes, {
+        SharedUtil, Timer, TransitionHelper,
+        Color, Frame, DomainUtil, Fader
+    });
 })();
