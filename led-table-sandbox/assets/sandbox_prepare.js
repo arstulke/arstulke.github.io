@@ -6,7 +6,7 @@ function require(moduleName) {
 
 
 (async function () {
-    await new Promise((resolve) => { setTimeout(() => resolve(), 3000); });
+    // await new Promise((resolve) => { setTimeout(() => resolve(), 3000); });
 
     await (async function () {
         convert = {
@@ -79,13 +79,13 @@ function require(moduleName) {
             const s = hsv[1] / 100;
             let v = hsv[2] / 100;
             const hi = Math.floor(h) % 6;
-        
+
             const f = h - Math.floor(h);
             const p = 255 * v * (1 - s);
             const q = 255 * v * (1 - (s * f));
             const t = 255 * v * (1 - (s * (1 - f)));
             v *= 255;
-        
+
             switch (hi) {
                 case 0:
                     return [v, t, p];
@@ -105,7 +105,7 @@ function require(moduleName) {
         modules['color-convert'] = convert;
     })();
 
-    const colorPromise = (async function () {
+    const Color = await (async function () {
         const convert = require('color-convert');
 
         function convertColor(obj) {
@@ -148,9 +148,10 @@ function require(moduleName) {
         };
 
         classes.Color = Color;
+        return Color;
     })();
 
-    const framePromise = (async function () {
+    await (async function () {
         function Frame() {
             this.data = {};
         }
@@ -162,6 +163,16 @@ function require(moduleName) {
             const col = this.data[x];
 
             col[y] = color;
+        }
+
+        Frame.prototype.getPixel = function (x, y) {
+            if (x in this.data) {
+                const col = this.data[x];
+                if (y in col) {
+                    return col[y];
+                }
+            }
+            return new Color({red: 0, green: 0, blue: 0});
         }
 
         Frame.prototype.fill = function (display, color) {
@@ -207,8 +218,6 @@ function require(moduleName) {
         }
 
         classes.Frame = Frame;
+        return Frame;
     })();
-
-    await colorPromise;
-    await framePromise;
 })();
