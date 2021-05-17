@@ -7,6 +7,7 @@ title: Projects
 order: 1
 ---
 On this page are hosted some private projects of mine.
+Visit also my [linktree](https://linktr.ee/arne.stulken) to follow me on GitHub, LinkedIn or Instagram.
 
 Some of the hosted projects store settings in the Cookies, LocalStorage or SessionStorage (both like Cookies) but none of the stored settings or data are transfered to any server. The settings are only stored for a more comfortable use. All applications are independent of any backend provided by me.
 
