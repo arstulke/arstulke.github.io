@@ -27,3 +27,12 @@ The current effects include a blur and a green screen.
 Under the hood the [BodyPix Tensorflow] framework from Google is used to detect the background and apply some effects.
 I forked the open [bodypix demo](https://storage.googleapis.com/tfjs-models/demos/body-pix/index.html),
 applied some good default values/effects and minimized the count of UI controls.
+
+
+{% comment %}
+    <ul>
+        <li><a href="https://github.com/arstulke" rel="me">Github</a></li>
+    </ul>
+    <link rel="authorization_endpoint" href="https://indieauth.com/auth" />
+    <link rel="token_endpoint" href="https://tokens.indieauth.com/token">
+{% endcomment %}
