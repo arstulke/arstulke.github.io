@@ -1,5 +1,7 @@
 ---
+layout: page
 title: About & Legal
+order: 2
 permalink: /about/
 ---
 
