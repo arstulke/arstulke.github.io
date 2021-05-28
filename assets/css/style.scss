@@ -2,5 +2,4 @@
 ---
 
 $blockquote-text-color: inherit;
-
-@import "{{ site.theme }}";
+@import "{{ site.scss_main }}";
