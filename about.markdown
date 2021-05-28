@@ -21,6 +21,3 @@ For detailed information see [GitHub Privacy Statement](https://docs.github.com/
 I personally (Arne Stulken) don't collect any personal data from visitors of this site, neither via third-party services.
 Therefore, I have not activated or included any analytics or cookie tracking stuff on this website.
 Some of the hosted projects store settings in the Cookies, LocalStorage or SessionStorage (both like Cookies) but none of the stored settings or data are transfered to any server. The settings are only stored for a more comfortable use. All applications are independent of any backend provided by me.
-
-# Copyright notes
-This page is generated via GitHub Pages Jekyll and uses the Jekyll Theme [example](.).
