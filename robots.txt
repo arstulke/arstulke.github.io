@@ -1,0 +1,4 @@
+Sitemap: /sitemap.xml
+Disallow: /led-table/
+Disallow: /led-table-sandbox/
+Disallow: /virtual-background/
