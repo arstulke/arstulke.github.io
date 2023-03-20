@@ -1,0 +1,2 @@
+"use strict";(self.webpackChunkarne_stulken=self.webpackChunkarne_stulken||[]).push([[539],{5214:function(e,t,n){n.r(t);var l=n(7294);t.default=()=>{const[e,t]=l.useState(0);return l.createElement("div",null,l.createElement("div",null,"Counter: ",e),l.createElement("button",{className:"m-1 px-2.5 py-1.5 text-white bg-blue-600 rounded-lg",onClick:()=>t(e+1)},"Increment"),l.createElement("button",{className:"m-1 px-2.5 py-1.5 text-white bg-blue-600 rounded-lg",onClick:()=>t(e-1)},"Decrement"))}}}]);
+//# sourceMappingURL=src-components-Counter-tsx-5bd8cfc22a9eeecae6bf.js.map
