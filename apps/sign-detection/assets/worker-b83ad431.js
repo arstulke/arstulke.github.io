@@ -152,7 +152,7 @@
     });
   }
   var Module = (() => {
-    var _scriptDir = document.currentScript && document.currentScript.src || new URL("assets/worker-f1735979.js", document.baseURI).href;
+    var _scriptDir = document.currentScript && document.currentScript.src || new URL("assets/worker-b83ad431.js", document.baseURI).href;
     return function(Module2 = {}) {
       var Module2 = typeof Module2 != "undefined" ? Module2 : {};
       var readyPromiseResolve, readyPromiseReject;
@@ -160,7 +160,7 @@
         readyPromiseResolve = resolve;
         readyPromiseReject = reject;
       });
-      ["_malloc", "___getTypeName", "__embind_initialize_bindings", "_fflush", "onRuntimeInitialized"].forEach((prop) => {
+      ["___getTypeName", "__embind_initialize_bindings", "_fflush", "onRuntimeInitialized"].forEach((prop) => {
         if (!Object.getOwnPropertyDescriptor(Module2["ready"], prop)) {
           Object.defineProperty(Module2["ready"], prop, {
             get: () => abort("You are getting " + prop + " on the Promise object, instead of the instance. Use .then() to get called back with the instance, see the MODULARIZE docs in src/settings.js"),
@@ -2307,7 +2307,7 @@
       var ___getTypeName = Module2["___getTypeName"] = createExportWrapper("__getTypeName");
       Module2["__embind_initialize_bindings"] = createExportWrapper("_embind_initialize_bindings");
       Module2["_fflush"] = createExportWrapper("fflush");
-      var _malloc = Module2["_malloc"] = createExportWrapper("malloc");
+      var _malloc = createExportWrapper("malloc");
       var _emscripten_stack_init = function() {
         return (_emscripten_stack_init = Module2["asm"]["emscripten_stack_init"]).apply(null, arguments);
       };
@@ -2759,27 +2759,25 @@
       })();
     }
     async processFrameObject({ inputFrame, start }) {
-      const preComputation = (/* @__PURE__ */ new Date()).toISOString();
-      const inputImage = this.convertFrameToBitmap4C(inputFrame);
-      const response = this.wasmInstance.processFrame(inputImage);
+      const preComputation = new Date().toISOString();
+      const inputBitmap4C = this.convertFrameToBitmap4C(inputFrame);
+      const response = this.wasmInstance.processFrame(inputBitmap4C);
       const outputFrame = this.convertBitmap4CToFrame(response.output);
       this.wasmInstance.freeMemory();
-      const postComputation = (/* @__PURE__ */ new Date()).toISOString();
+      const memorySize = this.wasmInstance.HEAPU8.byteLength;
+      const postComputation = new Date().toISOString();
       return {
         outputFrame,
         start,
         preComputation,
-        postComputation
+        postComputation,
+        memorySize
       };
     }
     convertFrameToBitmap4C(frame) {
-      const ptr = this.wasmInstance._malloc(frame.arr.length);
-      this.wasmInstance.HEAPU8.set(frame.arr, ptr);
-      const img = new this.wasmInstance.Bitmap4C();
-      img.ptr = ptr;
-      img.width = frame.width;
-      img.height = frame.height;
-      return img;
+      const bitmap4C = new this.wasmInstance.Bitmap4C(frame.width, frame.height);
+      this.wasmInstance.HEAPU8.set(frame.arr, bitmap4C.ptr);
+      return bitmap4C;
     }
     convertBitmap4CToFrame({ ptr, width, height }) {
       const byteLength = width * height * 4;

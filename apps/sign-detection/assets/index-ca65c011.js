@@ -8094,27 +8094,50 @@ class SignDetector {
       writable: true,
       value: void 0
     });
+    Object.defineProperty(this, "memorySizeLastValues", {
+      enumerable: true,
+      configurable: true,
+      writable: true,
+      value: void 0
+    });
     this.pool = new WorkerPool(signDetectorWorker, {
       maxWaitingValues: 1,
       deleteWaitingValueAction: "first"
     });
+    this.memorySizeLastValues = new Array(threadCount).fill(0);
   }
   async start() {
     await this.pool.started();
     await this.pool.scaleTo(this.threadCount);
   }
   async processFrame(frame) {
-    const { outputFrame, start, preComputation, postComputation } = await this.pool.run("processFrame", {
+    const { outputFrame, start, preComputation, postComputation, memorySize: memorySizeBytes } = await this.pool.run("processFrame", {
       inputFrame: frame,
-      start: (/* @__PURE__ */ new Date()).toISOString()
+      start: new Date().toISOString()
     });
+    const { memorySize, memorySizeUnit } = this.addMemorySizeAndCalculateAvg(memorySizeBytes);
     return {
       outputFrame,
       start,
       preComputation,
       postComputation,
-      end: (/* @__PURE__ */ new Date()).toISOString()
+      end: new Date().toISOString(),
+      memorySize,
+      memorySizeUnit
     };
+  }
+  addMemorySizeAndCalculateAvg(memorySizeBytes) {
+    this.memorySizeLastValues.shift();
+    this.memorySizeLastValues.push(memorySizeBytes);
+    const avg = this.memorySizeLastValues.reduce((a, b) => a + b, 0) / this.memorySizeLastValues.length;
+    const [scaled, memorySizeUnit] = [[0, ""], [10, "KiB"], [20, "MiB"], [
+      30,
+      "GiB"
+    ]].map(([exponent, unit]) => {
+      return [avg / Math.pow(2, exponent), unit];
+    }).find(([s], idx, arr) => s < 1024 || idx === arr.length - 1);
+    const rounded = Math.round(scaled);
+    return { memorySize: rounded, memorySizeUnit };
   }
   async stop() {
     await this.pool.terminate(false);
@@ -8181,7 +8204,7 @@ function createMergeProxy(baseObj, extObj) {
   });
 }
 function WorkerWrapper() {
-  return new Worker("" + new URL("worker-f1735979.js", import.meta.url).href);
+  return new Worker("" + new URL("worker-b83ad431.js", import.meta.url).href);
 }
 function useSignDetector() {
   const [signDetector, setSignDetector] = reactExports.useState();
@@ -8835,11 +8858,11 @@ function AspectRatioContainer({
 function useCurrentDate(refreshIntervalMs = 10) {
   const [date, setDate] = reactExports.useState();
   useInterval(() => {
-    setDate(/* @__PURE__ */ new Date());
+    setDate(new Date());
   }, refreshIntervalMs);
   return date;
 }
-const SECONDS_TO_CONSIDER = 10;
+const SECONDS_TO_CONSIDER = 2;
 const MAX_DISPLAYABLE_FPS = 200;
 const MAX_TIMESTAMPS = MAX_DISPLAYABLE_FPS * 10;
 const FpsCounter = reactExports.forwardRef(
@@ -8853,7 +8876,7 @@ const FpsCounter = reactExports.forwardRef(
       () => {
         return {
           addFrame() {
-            const now = (/* @__PURE__ */ new Date()).getTime();
+            const now = new Date().getTime();
             framesObj.frames.push(now);
             const reachedCapacity = frames.length >= MAX_TIMESTAMPS;
             if (reachedCapacity) {
@@ -9492,10 +9515,11 @@ const WebcamWrapper = reactExports.forwardRef(
 function SignDetection({
   fps,
   showWebcam,
-  isLoggingEnabled
+  isLoggingEnabled,
+  onMemorySize
 }) {
   if (!fps || fps <= 0) {
-    fps = 10;
+    fps = 1;
   }
   const intervalBetweenFrames = Math.round(1e3 / fps);
   const signDetector = useSignDetector();
@@ -9518,10 +9542,21 @@ function SignDetection({
         if (!frame)
           return;
         if (grabbedCanvasRef.current) {
-          grabbedCanvasRef.current.drawFrame(frame, /* @__PURE__ */ new Date());
+          grabbedCanvasRef.current.drawFrame(frame, new Date());
         }
-        const { outputFrame, start, preComputation, postComputation, end } = await signDetector.processFrame(frame);
+        const {
+          outputFrame,
+          start,
+          preComputation,
+          postComputation,
+          end,
+          memorySize,
+          memorySizeUnit
+        } = await signDetector.processFrame(frame);
         outputCanvasRef.current.drawFrame(outputFrame, new Date(start));
+        if (onMemorySize) {
+          onMemorySize(memorySize, memorySizeUnit);
+        }
         if (isLoggingEnabled) {
           const [threadPoolWait, computation, threadPoolOut] = [
             start,
@@ -9615,7 +9650,38 @@ function SignDetection({
   );
 }
 function App() {
-  return /* @__PURE__ */ jsx("div", { className: "p-6 w-full h-full", children: /* @__PURE__ */ jsx(SignDetection, { fps: 60, showWebcam: "grabbed", isLoggingEnabled: false }) });
+  const [isDebug, setIsDebug] = reactExports.useState(true);
+  const maxGrabberFps = isDebug ? 1 : 60;
+  const [memorySize, setMemorySize] = reactExports.useState("0B");
+  return /* @__PURE__ */ jsxs("div", { className: "p-6 w-full h-full flex flex-col space-y-4", children: [
+    /* @__PURE__ */ jsxs("div", { className: "flex space-x-4 items-center", children: [
+      /* @__PURE__ */ jsx(
+        "button",
+        {
+          className: "w-[7rem] py-2 px-3 rounded-xl text-white bg-blue-500 hover:bg-blue-600 border border-blue-300",
+          onClick: () => setIsDebug(!isDebug),
+          children: isDebug ? "Run faster" : "Run slower"
+        }
+      ),
+      /* @__PURE__ */ jsxs("span", { children: [
+        "Max Grabber FPS: ",
+        maxGrabberFps
+      ] }),
+      /* @__PURE__ */ jsxs("span", { children: [
+        "Memory: ",
+        memorySize
+      ] })
+    ] }),
+    /* @__PURE__ */ jsx("div", { className: "flex-grow h-full", children: /* @__PURE__ */ jsx(
+      SignDetection,
+      {
+        fps: maxGrabberFps,
+        showWebcam: "grabbed",
+        isLoggingEnabled: false,
+        onMemorySize: (memorySize2, memorySizeUnit) => setMemorySize(`${memorySize2}${memorySizeUnit}`)
+      }
+    ) })
+  ] });
 }
 const index = "";
 client.createRoot(document.getElementById("root")).render(
