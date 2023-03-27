@@ -8204,7 +8204,7 @@ function createMergeProxy(baseObj, extObj) {
   });
 }
 function WorkerWrapper() {
-  return new Worker("" + new URL("worker-b83ad431.js", import.meta.url).href);
+  return new Worker("" + new URL("worker-9d784018.js", import.meta.url).href);
 }
 function useSignDetector() {
   const [signDetector, setSignDetector] = reactExports.useState();
