@@ -152,7 +152,7 @@
     });
   }
   var Module = (() => {
-    var _scriptDir = document.currentScript && document.currentScript.src || new URL("assets/worker-9d784018.js", document.baseURI).href;
+    var _scriptDir = document.currentScript && document.currentScript.src || new URL("assets/multi-threaded-worker-a4b28725.js", document.baseURI).href;
     return function(Module2 = {}) {
       var Module2 = typeof Module2 != "undefined" ? Module2 : {};
       var readyPromiseResolve, readyPromiseReject;
@@ -1728,6 +1728,45 @@
           return [];
         });
       }
+      function __embind_register_class_function(rawClassType, methodName, argCount, rawArgTypesAddr, invokerSignature, rawInvoker, context, isPureVirtual, isAsync) {
+        var rawArgTypes = heap32VectorToArray(argCount, rawArgTypesAddr);
+        methodName = readLatin1String(methodName);
+        rawInvoker = embind__requireFunction(invokerSignature, rawInvoker);
+        whenDependentTypesAreResolved([], [rawClassType], function(classType) {
+          classType = classType[0];
+          var humanName = classType.name + "." + methodName;
+          if (methodName.startsWith("@@")) {
+            methodName = Symbol[methodName.substring(2)];
+          }
+          if (isPureVirtual) {
+            classType.registeredClass.pureVirtualFunctions.push(methodName);
+          }
+          function unboundTypesHandler() {
+            throwUnboundTypeError("Cannot call " + humanName + " due to unbound types", rawArgTypes);
+          }
+          var proto = classType.registeredClass.instancePrototype;
+          var method = proto[methodName];
+          if (void 0 === method || void 0 === method.overloadTable && method.className !== classType.name && method.argCount === argCount - 2) {
+            unboundTypesHandler.argCount = argCount - 2;
+            unboundTypesHandler.className = classType.name;
+            proto[methodName] = unboundTypesHandler;
+          } else {
+            ensureOverloadTable(proto, methodName, humanName);
+            proto[methodName].overloadTable[argCount - 2] = unboundTypesHandler;
+          }
+          whenDependentTypesAreResolved([], rawArgTypes, function(argTypes) {
+            var memberFunction = craftInvokerFunction(humanName, argTypes, classType, rawInvoker, context, isAsync);
+            if (void 0 === proto[methodName].overloadTable) {
+              memberFunction.argCount = argCount - 2;
+              proto[methodName] = memberFunction;
+            } else {
+              proto[methodName].overloadTable[argCount - 2] = memberFunction;
+            }
+            return [];
+          });
+          return [];
+        });
+      }
       function validateThis(this_, classType, humanName) {
         if (!(this_ instanceof Object)) {
           throwBindingError(humanName + ' with invalid "this": ' + this_);
@@ -2279,13 +2318,16 @@
       function _emscripten_date_now() {
         return Date.now();
       }
+      function getHeapMax() {
+        return 2147483648;
+      }
+      function _emscripten_get_heap_max() {
+        return getHeapMax();
+      }
       var _emscripten_get_now;
       _emscripten_get_now = () => performance.now();
       function _emscripten_memcpy_big(dest, src, num) {
         HEAPU8.copyWithin(dest, src, src + num);
-      }
-      function getHeapMax() {
-        return 2147483648;
       }
       function emscripten_realloc_buffer(size) {
         var b = wasmMemory.buffer;
@@ -5025,6 +5067,7 @@
         "_embind_register_bool": __embind_register_bool,
         "_embind_register_class": __embind_register_class,
         "_embind_register_class_constructor": __embind_register_class_constructor,
+        "_embind_register_class_function": __embind_register_class_function,
         "_embind_register_class_property": __embind_register_class_property,
         "_embind_register_emval": __embind_register_emval,
         "_embind_register_float": __embind_register_float,
@@ -5037,6 +5080,7 @@
         "_emscripten_get_now_is_monotonic": __emscripten_get_now_is_monotonic,
         "abort": _abort,
         "emscripten_date_now": _emscripten_date_now,
+        "emscripten_get_heap_max": _emscripten_get_heap_max,
         "emscripten_get_now": _emscripten_get_now,
         "emscripten_memcpy_big": _emscripten_memcpy_big,
         "emscripten_resize_heap": _emscripten_resize_heap,
@@ -5476,6 +5520,9 @@
   })();
   async function loadWasmBinary(urlOrString) {
     const response = await fetch(urlOrString);
+    if (!response.ok) {
+      throw new Error(`Could not fetch WASM file from "${urlOrString}"`);
+    }
     const arrayBuffer = await response.arrayBuffer();
     return new Uint8Array(arrayBuffer);
   }
@@ -5487,12 +5534,7 @@
       return await Deno.readFile(url);
     }
   };
-  async function runWorker(wasmModuleLoader) {
-    const imageProcessor = new ImageProcessor(wasmModuleLoader);
-    await imageProcessor.loaded;
-    exposeSingleFunction((input) => imageProcessor.processFrameObject(input), "processFrame");
-  }
-  class ImageProcessor {
+  class InternalSignDetector {
     constructor(wasmBinaryLoader = DefaultWasmBinaryLoader) {
       Object.defineProperty(this, "loaded", {
         enumerable: true,
@@ -5511,12 +5553,14 @@
         this.wasmInstance = await Module({ wasmBinary });
       })();
     }
-    async processFrameObject({ inputFrame, start }) {
+    async processFrame({ inputFrame, start }) {
+      await this.loaded;
       const preComputation = new Date().toISOString();
-      const inputBitmap4C = this.convertFrameToBitmap4C(inputFrame);
-      const response = this.wasmInstance.processFrame(inputBitmap4C);
-      const outputFrame = this.convertBitmap4CToFrame(response.output);
-      this.wasmInstance.freeMemory();
+      const request = this.convertFrameToRequest(inputFrame);
+      const response = this.wasmInstance.processFrame(request);
+      const outputFrame = this.convertResponseToFrame(response);
+      request.release();
+      response.release();
       const memorySize = this.wasmInstance.HEAPU8.byteLength;
       const postComputation = new Date().toISOString();
       return {
@@ -5527,16 +5571,23 @@
         memorySize
       };
     }
-    convertFrameToBitmap4C(frame) {
-      const bitmap4C = new this.wasmInstance.Bitmap4C(frame.width, frame.height);
-      this.wasmInstance.HEAPU8.set(frame.arr, bitmap4C.ptr);
-      return bitmap4C;
+    convertFrameToRequest({ width, height, arr }) {
+      const request = new this.wasmInstance.Request(width, height);
+      this.wasmInstance.HEAPU8.set(arr, request.input.ptr);
+      return request;
     }
-    convertBitmap4CToFrame({ ptr, width, height }) {
-      const byteLength = width * height * 4;
+    convertResponseToFrame(response) {
+      return this.convertBitmap4CToFrame(response.output);
+    }
+    convertBitmap4CToFrame({ ptr, width, height, byteLength }) {
       const arr = new Uint8ClampedArray(this.wasmInstance.HEAPU8.buffer.slice(ptr, ptr + byteLength));
       return { arr, width, height };
     }
+  }
+  async function runWorker(wasmModuleLoader) {
+    const imageProcessor = new InternalSignDetector(wasmModuleLoader);
+    await imageProcessor.loaded;
+    exposeSingleFunction((input) => imageProcessor.processFrame(input), "processFrame");
   }
   runWorker(() => {
     return loadWasmBinary("main.wasm");
