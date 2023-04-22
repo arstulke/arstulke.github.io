@@ -1,7 +1,5 @@
 (function() {
   "use strict";
-  const shimmedSelf = self;
-  shimmedSelf.document = { baseURI: location.origin };
   class CompletablePromise {
     constructor() {
       Object.defineProperty(this, "status", {
@@ -96,6 +94,13 @@
       return { type: "TASK_RESULT", taskResultType: "error", taskOutput: err };
     }
   }
+  const shimmedSelf = self;
+  if (!shimmedSelf.window) {
+    shimmedSelf.window = {};
+  }
+  if (!shimmedSelf.document && location) {
+    shimmedSelf.document = { baseURI: location.origin };
+  }
   const dntGlobals = {};
   const dntGlobalThis = createMergeProxy(globalThis, dntGlobals);
   function createMergeProxy(baseObj, extObj) {
@@ -152,7 +157,7 @@
     });
   }
   var Module = (() => {
-    var _scriptDir = document.currentScript && document.currentScript.src || new URL("assets/multi-threaded-worker-a4b28725.js", document.baseURI).href;
+    var _scriptDir = document.currentScript && document.currentScript.src || new URL("assets/multi-threaded-worker-9a306097.js", document.baseURI).href;
     return function(Module2 = {}) {
       var Module2 = typeof Module2 != "undefined" ? Module2 : {};
       var readyPromiseResolve, readyPromiseReject;

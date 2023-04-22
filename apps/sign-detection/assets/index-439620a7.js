@@ -8148,6 +8148,13 @@ class DefaultSignDetectorWorker extends Worker {
     super(new URL("./builtin-worker.ts", self.location), { type: "module" });
   }
 }
+const shimmedSelf = self;
+if (!shimmedSelf.window) {
+  shimmedSelf.window = {};
+}
+if (!shimmedSelf.document && location) {
+  shimmedSelf.document = { baseURI: location.origin };
+}
 const dntGlobals = {};
 const dntGlobalThis = createMergeProxy(globalThis, dntGlobals);
 function createMergeProxy(baseObj, extObj) {
@@ -13669,7 +13676,7 @@ class MainThreadedSignDetector {
   }
 }
 function WorkerWrapper() {
-  return new Worker("" + new URL("multi-threaded-worker-a4b28725.js", import.meta.url).href);
+  return new Worker("" + new URL("multi-threaded-worker-9a306097.js", import.meta.url).href);
 }
 function createMultiThreadedSignDetector() {
   const threadCount = 3;
