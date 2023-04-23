@@ -8092,7 +8092,7 @@ function formatWithStorageUnit(value) {
   });
 }
 class MultiThreadedSignDetector {
-  constructor(threadCount = 1, signDetectorWorker = DefaultSignDetectorWorker) {
+  constructor(threadCount = 1, signDetectorWorker = DefaultSignDetectorWorker, discardWaitingValues = true) {
     Object.defineProperty(this, "threadCount", {
       enumerable: true,
       configurable: true,
@@ -8112,7 +8112,7 @@ class MultiThreadedSignDetector {
       value: /* @__PURE__ */ new Map()
     });
     this.pool = new WorkerPool(signDetectorWorker, {
-      maxWaitingValues: 1,
+      maxWaitingValues: discardWaitingValues ? 1 : void 0,
       deleteWaitingValueAction: "first"
     });
   }
@@ -13316,6 +13316,7 @@ var Module = (() => {
       "invoke_iii": invoke_iii,
       "invoke_iiii": invoke_iiii,
       "invoke_iiiii": invoke_iiiii,
+      "invoke_iiiiid": invoke_iiiiid,
       "invoke_iiiiii": invoke_iiiiii,
       "invoke_iiiiiii": invoke_iiiiiii,
       "invoke_iiiiiiii": invoke_iiiiiiii,
@@ -13333,7 +13334,9 @@ var Module = (() => {
       "invoke_viii": invoke_viii,
       "invoke_viiid": invoke_viiid,
       "invoke_viiidd": invoke_viiidd,
+      "invoke_viiiddi": invoke_viiiddi,
       "invoke_viiii": invoke_viiii,
+      "invoke_viiiidiiii": invoke_viiiidiiii,
       "invoke_viiiiii": invoke_viiiiii,
       "invoke_viiiiiii": invoke_viiiiiii,
       "invoke_viiiiiiiii": invoke_viiiiiiiii,
@@ -13370,6 +13373,17 @@ var Module = (() => {
     Module2["dynCall_iiiiij"] = createExportWrapper("dynCall_iiiiij");
     Module2["dynCall_iiiiijj"] = createExportWrapper("dynCall_iiiiijj");
     Module2["dynCall_iiiiiijj"] = createExportWrapper("dynCall_iiiiiijj");
+    function invoke_vii(index2, a1, a2) {
+      var sp = stackSave();
+      try {
+        getWasmTableEntry(index2)(a1, a2);
+      } catch (e) {
+        stackRestore(sp);
+        if (!(e instanceof EmscriptenEH))
+          throw e;
+        _setThrew(1, 0);
+      }
+    }
     function invoke_iii(index2, a1, a2) {
       var sp = stackSave();
       try {
@@ -13447,17 +13461,6 @@ var Module = (() => {
         _setThrew(1, 0);
       }
     }
-    function invoke_iiii(index2, a1, a2, a3) {
-      var sp = stackSave();
-      try {
-        return getWasmTableEntry(index2)(a1, a2, a3);
-      } catch (e) {
-        stackRestore(sp);
-        if (!(e instanceof EmscriptenEH))
-          throw e;
-        _setThrew(1, 0);
-      }
-    }
     function invoke_dii(index2, a1, a2) {
       var sp = stackSave();
       try {
@@ -13469,10 +13472,10 @@ var Module = (() => {
         _setThrew(1, 0);
       }
     }
-    function invoke_vii(index2, a1, a2) {
+    function invoke_iiii(index2, a1, a2, a3) {
       var sp = stackSave();
       try {
-        getWasmTableEntry(index2)(a1, a2);
+        return getWasmTableEntry(index2)(a1, a2, a3);
       } catch (e) {
         stackRestore(sp);
         if (!(e instanceof EmscriptenEH))
@@ -13495,6 +13498,17 @@ var Module = (() => {
       var sp = stackSave();
       try {
         getWasmTableEntry(index2)();
+      } catch (e) {
+        stackRestore(sp);
+        if (!(e instanceof EmscriptenEH))
+          throw e;
+        _setThrew(1, 0);
+      }
+    }
+    function invoke_viiiddi(index2, a1, a2, a3, a4, a5, a6) {
+      var sp = stackSave();
+      try {
+        getWasmTableEntry(index2)(a1, a2, a3, a4, a5, a6);
       } catch (e) {
         stackRestore(sp);
         if (!(e instanceof EmscriptenEH))
@@ -13568,6 +13582,17 @@ var Module = (() => {
         _setThrew(1, 0);
       }
     }
+    function invoke_viiiidiiii(index2, a1, a2, a3, a4, a5, a6, a7, a8, a9) {
+      var sp = stackSave();
+      try {
+        getWasmTableEntry(index2)(a1, a2, a3, a4, a5, a6, a7, a8, a9);
+      } catch (e) {
+        stackRestore(sp);
+        if (!(e instanceof EmscriptenEH))
+          throw e;
+        _setThrew(1, 0);
+      }
+    }
     function invoke_viiiiiiiii(index2, a1, a2, a3, a4, a5, a6, a7, a8, a9) {
       var sp = stackSave();
       try {
@@ -13613,6 +13638,17 @@ var Module = (() => {
       }
     }
     function invoke_iiiiii(index2, a1, a2, a3, a4, a5) {
+      var sp = stackSave();
+      try {
+        return getWasmTableEntry(index2)(a1, a2, a3, a4, a5);
+      } catch (e) {
+        stackRestore(sp);
+        if (!(e instanceof EmscriptenEH))
+          throw e;
+        _setThrew(1, 0);
+      }
+    }
+    function invoke_iiiiid(index2, a1, a2, a3, a4, a5) {
       var sp = stackSave();
       try {
         return getWasmTableEntry(index2)(a1, a2, a3, a4, a5);
@@ -14243,7 +14279,7 @@ class MainThreadedSignDetector {
   }
 }
 function WorkerWrapper() {
-  return new Worker("" + new URL("multi-threaded-worker-c5812f40.js", import.meta.url).href);
+  return new Worker("" + new URL("multi-threaded-worker-cb5216c5.js", import.meta.url).href);
 }
 function createMultiThreadedSignDetector() {
   const threadCount = 3;

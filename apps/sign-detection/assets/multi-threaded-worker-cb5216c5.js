@@ -157,7 +157,7 @@
     });
   }
   var Module = (() => {
-    var _scriptDir = document.currentScript && document.currentScript.src || new URL("assets/multi-threaded-worker-c5812f40.js", document.baseURI).href;
+    var _scriptDir = document.currentScript && document.currentScript.src || new URL("assets/multi-threaded-worker-cb5216c5.js", document.baseURI).href;
     return function(Module2 = {}) {
       var Module2 = typeof Module2 != "undefined" ? Module2 : {};
       var readyPromiseResolve, readyPromiseReject;
@@ -5262,6 +5262,7 @@
         "invoke_iii": invoke_iii,
         "invoke_iiii": invoke_iiii,
         "invoke_iiiii": invoke_iiiii,
+        "invoke_iiiiid": invoke_iiiiid,
         "invoke_iiiiii": invoke_iiiiii,
         "invoke_iiiiiii": invoke_iiiiiii,
         "invoke_iiiiiiii": invoke_iiiiiiii,
@@ -5279,7 +5280,9 @@
         "invoke_viii": invoke_viii,
         "invoke_viiid": invoke_viiid,
         "invoke_viiidd": invoke_viiidd,
+        "invoke_viiiddi": invoke_viiiddi,
         "invoke_viiii": invoke_viiii,
+        "invoke_viiiidiiii": invoke_viiiidiiii,
         "invoke_viiiiii": invoke_viiiiii,
         "invoke_viiiiiii": invoke_viiiiiii,
         "invoke_viiiiiiiii": invoke_viiiiiiiii,
@@ -5316,6 +5319,17 @@
       Module2["dynCall_iiiiij"] = createExportWrapper("dynCall_iiiiij");
       Module2["dynCall_iiiiijj"] = createExportWrapper("dynCall_iiiiijj");
       Module2["dynCall_iiiiiijj"] = createExportWrapper("dynCall_iiiiiijj");
+      function invoke_vii(index, a1, a2) {
+        var sp = stackSave();
+        try {
+          getWasmTableEntry(index)(a1, a2);
+        } catch (e) {
+          stackRestore(sp);
+          if (!(e instanceof EmscriptenEH))
+            throw e;
+          _setThrew(1, 0);
+        }
+      }
       function invoke_iii(index, a1, a2) {
         var sp = stackSave();
         try {
@@ -5393,17 +5407,6 @@
           _setThrew(1, 0);
         }
       }
-      function invoke_iiii(index, a1, a2, a3) {
-        var sp = stackSave();
-        try {
-          return getWasmTableEntry(index)(a1, a2, a3);
-        } catch (e) {
-          stackRestore(sp);
-          if (!(e instanceof EmscriptenEH))
-            throw e;
-          _setThrew(1, 0);
-        }
-      }
       function invoke_dii(index, a1, a2) {
         var sp = stackSave();
         try {
@@ -5415,10 +5418,10 @@
           _setThrew(1, 0);
         }
       }
-      function invoke_vii(index, a1, a2) {
+      function invoke_iiii(index, a1, a2, a3) {
         var sp = stackSave();
         try {
-          getWasmTableEntry(index)(a1, a2);
+          return getWasmTableEntry(index)(a1, a2, a3);
         } catch (e) {
           stackRestore(sp);
           if (!(e instanceof EmscriptenEH))
@@ -5441,6 +5444,17 @@
         var sp = stackSave();
         try {
           getWasmTableEntry(index)();
+        } catch (e) {
+          stackRestore(sp);
+          if (!(e instanceof EmscriptenEH))
+            throw e;
+          _setThrew(1, 0);
+        }
+      }
+      function invoke_viiiddi(index, a1, a2, a3, a4, a5, a6) {
+        var sp = stackSave();
+        try {
+          getWasmTableEntry(index)(a1, a2, a3, a4, a5, a6);
         } catch (e) {
           stackRestore(sp);
           if (!(e instanceof EmscriptenEH))
@@ -5514,6 +5528,17 @@
           _setThrew(1, 0);
         }
       }
+      function invoke_viiiidiiii(index, a1, a2, a3, a4, a5, a6, a7, a8, a9) {
+        var sp = stackSave();
+        try {
+          getWasmTableEntry(index)(a1, a2, a3, a4, a5, a6, a7, a8, a9);
+        } catch (e) {
+          stackRestore(sp);
+          if (!(e instanceof EmscriptenEH))
+            throw e;
+          _setThrew(1, 0);
+        }
+      }
       function invoke_viiiiiiiii(index, a1, a2, a3, a4, a5, a6, a7, a8, a9) {
         var sp = stackSave();
         try {
@@ -5559,6 +5584,17 @@
         }
       }
       function invoke_iiiiii(index, a1, a2, a3, a4, a5) {
+        var sp = stackSave();
+        try {
+          return getWasmTableEntry(index)(a1, a2, a3, a4, a5);
+        } catch (e) {
+          stackRestore(sp);
+          if (!(e instanceof EmscriptenEH))
+            throw e;
+          _setThrew(1, 0);
+        }
+      }
+      function invoke_iiiiid(index, a1, a2, a3, a4, a5) {
         var sp = stackSave();
         try {
           return getWasmTableEntry(index)(a1, a2, a3, a4, a5);
@@ -6099,7 +6135,7 @@
     return new Uint8Array(arrayBuffer);
   }
   const DefaultWasmFileLoader = async (filename) => {
-    const url = new URL("./wasm-build/" + filename, document.currentScript && document.currentScript.src || new URL("assets/multi-threaded-worker-c5812f40.js", document.baseURI).href);
+    const url = new URL("./wasm-build/" + filename, document.currentScript && document.currentScript.src || new URL("assets/multi-threaded-worker-cb5216c5.js", document.baseURI).href);
     try {
       return await loadWasmFile(url);
     } catch {
