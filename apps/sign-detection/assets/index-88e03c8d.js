@@ -8150,7 +8150,7 @@ class DefaultSignDetectorWorker extends Worker {
 }
 const shimmedSelf = self;
 if (!shimmedSelf.window) {
-  shimmedSelf.window = {};
+  shimmedSelf.window = { location, encodeURIComponent };
 }
 if (!shimmedSelf.document && location) {
   shimmedSelf.document = { baseURI: location.origin };
@@ -8219,7 +8219,7 @@ var Module = (() => {
       readyPromiseResolve = resolve;
       readyPromiseReject = reject;
     });
-    ["_fflush", "___getTypeName", "__embind_initialize_bindings", "onRuntimeInitialized"].forEach((prop) => {
+    ["getExceptionMessage", "___get_exception_message", "_free", "_fflush", "___getTypeName", "__embind_initialize_bindings", "onRuntimeInitialized"].forEach((prop) => {
       if (!Object.getOwnPropertyDescriptor(Module2["ready"], prop)) {
         Object.defineProperty(Module2["ready"], prop, {
           get: () => abort("You are getting " + prop + " on the Promise object, instead of the instance. Use .then() to get called back with the instance, see the MODULARIZE docs in src/settings.js"),
@@ -8626,6 +8626,16 @@ var Module = (() => {
         return asm[name].apply(null, arguments);
       };
     }
+    class EmscriptenEH extends Error {
+    }
+    class CppException extends EmscriptenEH {
+      constructor(excPtr) {
+        super(excPtr);
+        const excInfo = getExceptionMessage(excPtr);
+        this.name = excInfo[0];
+        this.message = excInfo[1];
+      }
+    }
     var wasmBinaryFile;
     if (Module2["locateFile"]) {
       wasmBinaryFile = "main.wasm";
@@ -8799,16 +8809,24 @@ var Module = (() => {
         callbacks2.shift()(Module2);
       }
     }
-    function ptrToString(ptr) {
-      assert(typeof ptr === "number");
-      return "0x" + ptr.toString(16).padStart(8, "0");
+    var wasmTableMirror = [];
+    function getWasmTableEntry(funcPtr) {
+      var func = wasmTableMirror[funcPtr];
+      if (!func) {
+        if (funcPtr >= wasmTableMirror.length)
+          wasmTableMirror.length = funcPtr + 1;
+        wasmTableMirror[funcPtr] = func = wasmTable.get(funcPtr);
+      }
+      assert(wasmTable.get(funcPtr) == func, "JavaScript-side Wasm function table mirror is out of date!");
+      return func;
     }
-    function warnOnce(text) {
-      if (!warnOnce.shown)
-        warnOnce.shown = {};
-      if (!warnOnce.shown[text]) {
-        warnOnce.shown[text] = 1;
-        err(text);
+    function exception_decRef(info) {
+      if (info.release_ref() && !info.get_rethrown()) {
+        var destructor = info.get_destructor();
+        if (destructor) {
+          getWasmTableEntry(destructor)(info.excPtr);
+        }
+        ___cxa_free_exception(info.excPtr);
       }
     }
     function ExceptionInfo(excPtr) {
@@ -8878,10 +8896,149 @@ var Module = (() => {
         return this.excPtr;
       };
     }
+    function ___cxa_decrement_exception_refcount(ptr) {
+      if (!ptr)
+        return;
+      exception_decRef(new ExceptionInfo(ptr));
+    }
+    function withStackSave(f2) {
+      var stack = stackSave();
+      var ret = f2();
+      stackRestore(stack);
+      return ret;
+    }
+    function getExceptionMessageCommon(ptr) {
+      return withStackSave(function() {
+        var type_addr_addr = stackAlloc(4);
+        var message_addr_addr = stackAlloc(4);
+        ___get_exception_message(ptr, type_addr_addr, message_addr_addr);
+        var type_addr = HEAPU32[type_addr_addr >> 2];
+        var message_addr = HEAPU32[message_addr_addr >> 2];
+        var type = UTF8ToString(type_addr);
+        _free(type_addr);
+        var message;
+        if (message_addr) {
+          message = UTF8ToString(message_addr);
+          _free(message_addr);
+        }
+        return [type, message];
+      });
+    }
+    function getExceptionMessage(ptr) {
+      return getExceptionMessageCommon(ptr);
+    }
+    Module2["getExceptionMessage"] = getExceptionMessage;
+    function exception_addRef(info) {
+      info.add_ref();
+    }
+    function ___cxa_increment_exception_refcount(ptr) {
+      if (!ptr)
+        return;
+      exception_addRef(new ExceptionInfo(ptr));
+    }
+    function ptrToString(ptr) {
+      assert(typeof ptr === "number");
+      return "0x" + ptr.toString(16).padStart(8, "0");
+    }
+    function warnOnce(text) {
+      if (!warnOnce.shown)
+        warnOnce.shown = {};
+      if (!warnOnce.shown[text]) {
+        warnOnce.shown[text] = 1;
+        err(text);
+      }
+    }
+    function ___assert_fail(condition, filename, line, func) {
+      abort("Assertion failed: " + UTF8ToString(condition) + ", at: " + [filename ? UTF8ToString(filename) : "unknown filename", line, func ? UTF8ToString(func) : "unknown function"]);
+    }
+    var exceptionCaught = [];
+    var uncaughtExceptionCount = 0;
+    function ___cxa_begin_catch(ptr) {
+      var info = new ExceptionInfo(ptr);
+      if (!info.get_caught()) {
+        info.set_caught(true);
+        uncaughtExceptionCount--;
+      }
+      info.set_rethrown(false);
+      exceptionCaught.push(info);
+      exception_addRef(info);
+      return info.get_exception_ptr();
+    }
+    var exceptionLast = 0;
+    function ___cxa_end_catch() {
+      _setThrew(0);
+      assert(exceptionCaught.length > 0);
+      var info = exceptionCaught.pop();
+      exception_decRef(info);
+      exceptionLast = 0;
+    }
+    function ___resumeException(ptr) {
+      if (!exceptionLast) {
+        exceptionLast = ptr;
+      }
+      throw new CppException(ptr);
+    }
+    function ___cxa_find_matching_catch() {
+      var thrown = exceptionLast;
+      if (!thrown) {
+        setTempRet0(0);
+        return 0;
+      }
+      var info = new ExceptionInfo(thrown);
+      info.set_adjusted_ptr(thrown);
+      var thrownType = info.get_type();
+      if (!thrownType) {
+        setTempRet0(0);
+        return thrown;
+      }
+      for (var i = 0; i < arguments.length; i++) {
+        var caughtType = arguments[i];
+        if (caughtType === 0 || caughtType === thrownType) {
+          break;
+        }
+        var adjusted_ptr_addr = info.ptr + 16;
+        if (___cxa_can_catch(caughtType, thrownType, adjusted_ptr_addr)) {
+          setTempRet0(caughtType);
+          return thrown;
+        }
+      }
+      setTempRet0(thrownType);
+      return thrown;
+    }
+    var ___cxa_find_matching_catch_2 = ___cxa_find_matching_catch;
+    var ___cxa_find_matching_catch_3 = ___cxa_find_matching_catch;
+    function ___cxa_rethrow() {
+      var info = exceptionCaught.pop();
+      if (!info) {
+        abort("no exception to throw");
+      }
+      var ptr = info.excPtr;
+      if (!info.get_rethrown()) {
+        exceptionCaught.push(info);
+        info.set_rethrown(true);
+        info.set_caught(false);
+        uncaughtExceptionCount++;
+      }
+      exceptionLast = ptr;
+      throw new CppException(ptr);
+    }
+    function ___cxa_rethrow_primary_exception(ptr) {
+      if (!ptr)
+        return;
+      var info = new ExceptionInfo(ptr);
+      exceptionCaught.push(info);
+      info.set_rethrown(true);
+      ___cxa_rethrow();
+    }
     function ___cxa_throw(ptr, type, destructor) {
       var info = new ExceptionInfo(ptr);
       info.init(type, destructor);
-      throw ptr + " - Exception catching is disabled, this exception cannot be caught. Compile with -sNO_DISABLE_EXCEPTION_CATCHING or -sEXCEPTION_CATCHING_ALLOWED=[..] to catch.";
+      exceptionLast = ptr;
+      uncaughtExceptionCount++;
+      throw new CppException(ptr);
+    }
+    function ___cxa_uncaught_exceptions() {
+      return uncaughtExceptionCount;
     }
     function __embind_register_bigint(primitiveType, name, size2, minRange, maxRange) {
     }
@@ -9555,17 +9712,6 @@ var Module = (() => {
       }
       var f2 = Module2["dynCall_" + sig];
       return args && args.length ? f2.apply(null, [ptr].concat(args)) : f2.call(null, ptr);
-    }
-    var wasmTableMirror = [];
-    function getWasmTableEntry(funcPtr) {
-      var func = wasmTableMirror[funcPtr];
-      if (!func) {
-        if (funcPtr >= wasmTableMirror.length)
-          wasmTableMirror.length = funcPtr + 1;
-        wasmTableMirror[funcPtr] = func = wasmTable.get(funcPtr);
-      }
-      assert(wasmTable.get(funcPtr) == func, "JavaScript-side Wasm function table mirror is out of date!");
-      return func;
     }
     function dynCall(sig, ptr, args) {
       if (sig.includes("j")) {
@@ -13121,7 +13267,18 @@ var Module = (() => {
       ignoredModuleProp("fetchSettings");
     }
     var wasmImports = {
+      "__assert_fail": ___assert_fail,
+      "__cxa_begin_catch": ___cxa_begin_catch,
+      "__cxa_decrement_exception_refcount": ___cxa_decrement_exception_refcount,
+      "__cxa_end_catch": ___cxa_end_catch,
+      "__cxa_find_matching_catch_2": ___cxa_find_matching_catch_2,
+      "__cxa_find_matching_catch_3": ___cxa_find_matching_catch_3,
+      "__cxa_increment_exception_refcount": ___cxa_increment_exception_refcount,
+      "__cxa_rethrow": ___cxa_rethrow,
+      "__cxa_rethrow_primary_exception": ___cxa_rethrow_primary_exception,
       "__cxa_throw": ___cxa_throw,
+      "__cxa_uncaught_exceptions": ___cxa_uncaught_exceptions,
+      "__resumeException": ___resumeException,
       "_embind_register_bigint": __embind_register_bigint,
       "_embind_register_bool": __embind_register_bool,
       "_embind_register_class": __embind_register_class,
@@ -13149,27 +13306,433 @@ var Module = (() => {
       "fd_read": _fd_read,
       "fd_seek": _fd_seek,
       "fd_write": _fd_write,
+      "invoke_di": invoke_di,
+      "invoke_dii": invoke_dii,
+      "invoke_diii": invoke_diii,
+      "invoke_fiii": invoke_fiii,
+      "invoke_i": invoke_i,
+      "invoke_ii": invoke_ii,
+      "invoke_iidddd": invoke_iidddd,
+      "invoke_iii": invoke_iii,
+      "invoke_iiii": invoke_iiii,
+      "invoke_iiiii": invoke_iiiii,
+      "invoke_iiiiii": invoke_iiiiii,
+      "invoke_iiiiiii": invoke_iiiiiii,
+      "invoke_iiiiiiii": invoke_iiiiiiii,
+      "invoke_iiiiiiiiiii": invoke_iiiiiiiiiii,
+      "invoke_iiiiiiiiiiii": invoke_iiiiiiiiiiii,
+      "invoke_iiiiiiiiiiiii": invoke_iiiiiiiiiiiii,
+      "invoke_j": invoke_j,
+      "invoke_jiiii": invoke_jiiii,
+      "invoke_v": invoke_v,
+      "invoke_vi": invoke_vi,
+      "invoke_vii": invoke_vii,
+      "invoke_viidd": invoke_viidd,
+      "invoke_viiddii": invoke_viiddii,
+      "invoke_viidi": invoke_viidi,
+      "invoke_viii": invoke_viii,
+      "invoke_viiid": invoke_viiid,
+      "invoke_viiidd": invoke_viiidd,
+      "invoke_viiii": invoke_viiii,
+      "invoke_viiiiii": invoke_viiiiii,
+      "invoke_viiiiiii": invoke_viiiiiii,
+      "invoke_viiiiiiiii": invoke_viiiiiiiii,
+      "invoke_viiiiiiiiii": invoke_viiiiiiiiii,
+      "invoke_viiiiiiiiiiiiiii": invoke_viiiiiiiiiiiiiii,
       "strftime_l": _strftime_l
     };
     createWasm();
-    var _free = createExportWrapper("free");
+    var ___cxa_free_exception = createExportWrapper("__cxa_free_exception");
+    var _free = Module2["_free"] = createExportWrapper("free");
     var _malloc = createExportWrapper("malloc");
     var _fflush = Module2["_fflush"] = createExportWrapper("fflush");
     var ___getTypeName = Module2["___getTypeName"] = createExportWrapper("__getTypeName");
     Module2["__embind_initialize_bindings"] = createExportWrapper("_embind_initialize_bindings");
+    var _setThrew = createExportWrapper("setThrew");
+    var setTempRet0 = createExportWrapper("setTempRet0");
     var _emscripten_stack_init = function() {
       return (_emscripten_stack_init = Module2["asm"]["emscripten_stack_init"]).apply(null, arguments);
     };
     var _emscripten_stack_get_end = function() {
       return (_emscripten_stack_get_end = Module2["asm"]["emscripten_stack_get_end"]).apply(null, arguments);
     };
+    var stackSave = createExportWrapper("stackSave");
+    var stackRestore = createExportWrapper("stackRestore");
+    var stackAlloc = createExportWrapper("stackAlloc");
+    var ___get_exception_message = Module2["___get_exception_message"] = createExportWrapper("__get_exception_message");
+    var ___cxa_can_catch = createExportWrapper("__cxa_can_catch");
     var ___cxa_is_pointer_type = createExportWrapper("__cxa_is_pointer_type");
     Module2["dynCall_ji"] = createExportWrapper("dynCall_ji");
     Module2["dynCall_jiji"] = createExportWrapper("dynCall_jiji");
+    var dynCall_j = Module2["dynCall_j"] = createExportWrapper("dynCall_j");
     Module2["dynCall_viijii"] = createExportWrapper("dynCall_viijii");
+    var dynCall_jiiii = Module2["dynCall_jiiii"] = createExportWrapper("dynCall_jiiii");
     Module2["dynCall_iiiiij"] = createExportWrapper("dynCall_iiiiij");
     Module2["dynCall_iiiiijj"] = createExportWrapper("dynCall_iiiiijj");
     Module2["dynCall_iiiiiijj"] = createExportWrapper("dynCall_iiiiiijj");
+    function invoke_iii(index2, a1, a2) {
+      var sp = stackSave();
+      try {
+        return getWasmTableEntry(index2)(a1, a2);
+      } catch (e) {
+        stackRestore(sp);
+        if (!(e instanceof EmscriptenEH))
+          throw e;
+        _setThrew(1, 0);
+      }
+    }
+    function invoke_viiii(index2, a1, a2, a3, a4) {
+      var sp = stackSave();
+      try {
+        getWasmTableEntry(index2)(a1, a2, a3, a4);
+      } catch (e) {
+        stackRestore(sp);
+        if (!(e instanceof EmscriptenEH))
+          throw e;
+        _setThrew(1, 0);
+      }
+    }
+    function invoke_vi(index2, a1) {
+      var sp = stackSave();
+      try {
+        getWasmTableEntry(index2)(a1);
+      } catch (e) {
+        stackRestore(sp);
+        if (!(e instanceof EmscriptenEH))
+          throw e;
+        _setThrew(1, 0);
+      }
+    }
+    function invoke_viiiiiii(index2, a1, a2, a3, a4, a5, a6, a7) {
+      var sp = stackSave();
+      try {
+        getWasmTableEntry(index2)(a1, a2, a3, a4, a5, a6, a7);
+      } catch (e) {
+        stackRestore(sp);
+        if (!(e instanceof EmscriptenEH))
+          throw e;
+        _setThrew(1, 0);
+      }
+    }
+    function invoke_i(index2) {
+      var sp = stackSave();
+      try {
+        return getWasmTableEntry(index2)();
+      } catch (e) {
+        stackRestore(sp);
+        if (!(e instanceof EmscriptenEH))
+          throw e;
+        _setThrew(1, 0);
+      }
+    }
+    function invoke_viii(index2, a1, a2, a3) {
+      var sp = stackSave();
+      try {
+        getWasmTableEntry(index2)(a1, a2, a3);
+      } catch (e) {
+        stackRestore(sp);
+        if (!(e instanceof EmscriptenEH))
+          throw e;
+        _setThrew(1, 0);
+      }
+    }
+    function invoke_ii(index2, a1) {
+      var sp = stackSave();
+      try {
+        return getWasmTableEntry(index2)(a1);
+      } catch (e) {
+        stackRestore(sp);
+        if (!(e instanceof EmscriptenEH))
+          throw e;
+        _setThrew(1, 0);
+      }
+    }
+    function invoke_iiii(index2, a1, a2, a3) {
+      var sp = stackSave();
+      try {
+        return getWasmTableEntry(index2)(a1, a2, a3);
+      } catch (e) {
+        stackRestore(sp);
+        if (!(e instanceof EmscriptenEH))
+          throw e;
+        _setThrew(1, 0);
+      }
+    }
+    function invoke_dii(index2, a1, a2) {
+      var sp = stackSave();
+      try {
+        return getWasmTableEntry(index2)(a1, a2);
+      } catch (e) {
+        stackRestore(sp);
+        if (!(e instanceof EmscriptenEH))
+          throw e;
+        _setThrew(1, 0);
+      }
+    }
+    function invoke_vii(index2, a1, a2) {
+      var sp = stackSave();
+      try {
+        getWasmTableEntry(index2)(a1, a2);
+      } catch (e) {
+        stackRestore(sp);
+        if (!(e instanceof EmscriptenEH))
+          throw e;
+        _setThrew(1, 0);
+      }
+    }
+    function invoke_iiiii(index2, a1, a2, a3, a4) {
+      var sp = stackSave();
+      try {
+        return getWasmTableEntry(index2)(a1, a2, a3, a4);
+      } catch (e) {
+        stackRestore(sp);
+        if (!(e instanceof EmscriptenEH))
+          throw e;
+        _setThrew(1, 0);
+      }
+    }
+    function invoke_v(index2) {
+      var sp = stackSave();
+      try {
+        getWasmTableEntry(index2)();
+      } catch (e) {
+        stackRestore(sp);
+        if (!(e instanceof EmscriptenEH))
+          throw e;
+        _setThrew(1, 0);
+      }
+    }
+    function invoke_viidd(index2, a1, a2, a3, a4) {
+      var sp = stackSave();
+      try {
+        getWasmTableEntry(index2)(a1, a2, a3, a4);
+      } catch (e) {
+        stackRestore(sp);
+        if (!(e instanceof EmscriptenEH))
+          throw e;
+        _setThrew(1, 0);
+      }
+    }
+    function invoke_viiiiii(index2, a1, a2, a3, a4, a5, a6) {
+      var sp = stackSave();
+      try {
+        getWasmTableEntry(index2)(a1, a2, a3, a4, a5, a6);
+      } catch (e) {
+        stackRestore(sp);
+        if (!(e instanceof EmscriptenEH))
+          throw e;
+        _setThrew(1, 0);
+      }
+    }
+    function invoke_viiid(index2, a1, a2, a3, a4) {
+      var sp = stackSave();
+      try {
+        getWasmTableEntry(index2)(a1, a2, a3, a4);
+      } catch (e) {
+        stackRestore(sp);
+        if (!(e instanceof EmscriptenEH))
+          throw e;
+        _setThrew(1, 0);
+      }
+    }
+    function invoke_di(index2, a1) {
+      var sp = stackSave();
+      try {
+        return getWasmTableEntry(index2)(a1);
+      } catch (e) {
+        stackRestore(sp);
+        if (!(e instanceof EmscriptenEH))
+          throw e;
+        _setThrew(1, 0);
+      }
+    }
+    function invoke_viidi(index2, a1, a2, a3, a4) {
+      var sp = stackSave();
+      try {
+        getWasmTableEntry(index2)(a1, a2, a3, a4);
+      } catch (e) {
+        stackRestore(sp);
+        if (!(e instanceof EmscriptenEH))
+          throw e;
+        _setThrew(1, 0);
+      }
+    }
+    function invoke_iidddd(index2, a1, a2, a3, a4, a5) {
+      var sp = stackSave();
+      try {
+        return getWasmTableEntry(index2)(a1, a2, a3, a4, a5);
+      } catch (e) {
+        stackRestore(sp);
+        if (!(e instanceof EmscriptenEH))
+          throw e;
+        _setThrew(1, 0);
+      }
+    }
+    function invoke_viiiiiiiii(index2, a1, a2, a3, a4, a5, a6, a7, a8, a9) {
+      var sp = stackSave();
+      try {
+        getWasmTableEntry(index2)(a1, a2, a3, a4, a5, a6, a7, a8, a9);
+      } catch (e) {
+        stackRestore(sp);
+        if (!(e instanceof EmscriptenEH))
+          throw e;
+        _setThrew(1, 0);
+      }
+    }
+    function invoke_iiiiiii(index2, a1, a2, a3, a4, a5, a6) {
+      var sp = stackSave();
+      try {
+        return getWasmTableEntry(index2)(a1, a2, a3, a4, a5, a6);
+      } catch (e) {
+        stackRestore(sp);
+        if (!(e instanceof EmscriptenEH))
+          throw e;
+        _setThrew(1, 0);
+      }
+    }
+    function invoke_viiddii(index2, a1, a2, a3, a4, a5, a6) {
+      var sp = stackSave();
+      try {
+        getWasmTableEntry(index2)(a1, a2, a3, a4, a5, a6);
+      } catch (e) {
+        stackRestore(sp);
+        if (!(e instanceof EmscriptenEH))
+          throw e;
+        _setThrew(1, 0);
+      }
+    }
+    function invoke_viiidd(index2, a1, a2, a3, a4, a5) {
+      var sp = stackSave();
+      try {
+        getWasmTableEntry(index2)(a1, a2, a3, a4, a5);
+      } catch (e) {
+        stackRestore(sp);
+        if (!(e instanceof EmscriptenEH))
+          throw e;
+        _setThrew(1, 0);
+      }
+    }
+    function invoke_iiiiii(index2, a1, a2, a3, a4, a5) {
+      var sp = stackSave();
+      try {
+        return getWasmTableEntry(index2)(a1, a2, a3, a4, a5);
+      } catch (e) {
+        stackRestore(sp);
+        if (!(e instanceof EmscriptenEH))
+          throw e;
+        _setThrew(1, 0);
+      }
+    }
+    function invoke_iiiiiiii(index2, a1, a2, a3, a4, a5, a6, a7) {
+      var sp = stackSave();
+      try {
+        return getWasmTableEntry(index2)(a1, a2, a3, a4, a5, a6, a7);
+      } catch (e) {
+        stackRestore(sp);
+        if (!(e instanceof EmscriptenEH))
+          throw e;
+        _setThrew(1, 0);
+      }
+    }
+    function invoke_iiiiiiiiiii(index2, a1, a2, a3, a4, a5, a6, a7, a8, a9, a10) {
+      var sp = stackSave();
+      try {
+        return getWasmTableEntry(index2)(a1, a2, a3, a4, a5, a6, a7, a8, a9, a10);
+      } catch (e) {
+        stackRestore(sp);
+        if (!(e instanceof EmscriptenEH))
+          throw e;
+        _setThrew(1, 0);
+      }
+    }
+    function invoke_iiiiiiiiiiiii(index2, a1, a2, a3, a4, a5, a6, a7, a8, a9, a10, a11, a12) {
+      var sp = stackSave();
+      try {
+        return getWasmTableEntry(index2)(a1, a2, a3, a4, a5, a6, a7, a8, a9, a10, a11, a12);
+      } catch (e) {
+        stackRestore(sp);
+        if (!(e instanceof EmscriptenEH))
+          throw e;
+        _setThrew(1, 0);
+      }
+    }
+    function invoke_fiii(index2, a1, a2, a3) {
+      var sp = stackSave();
+      try {
+        return getWasmTableEntry(index2)(a1, a2, a3);
+      } catch (e) {
+        stackRestore(sp);
+        if (!(e instanceof EmscriptenEH))
+          throw e;
+        _setThrew(1, 0);
+      }
+    }
+    function invoke_diii(index2, a1, a2, a3) {
+      var sp = stackSave();
+      try {
+        return getWasmTableEntry(index2)(a1, a2, a3);
+      } catch (e) {
+        stackRestore(sp);
+        if (!(e instanceof EmscriptenEH))
+          throw e;
+        _setThrew(1, 0);
+      }
+    }
+    function invoke_iiiiiiiiiiii(index2, a1, a2, a3, a4, a5, a6, a7, a8, a9, a10, a11) {
+      var sp = stackSave();
+      try {
+        return getWasmTableEntry(index2)(a1, a2, a3, a4, a5, a6, a7, a8, a9, a10, a11);
+      } catch (e) {
+        stackRestore(sp);
+        if (!(e instanceof EmscriptenEH))
+          throw e;
+        _setThrew(1, 0);
+      }
+    }
+    function invoke_viiiiiiiiii(index2, a1, a2, a3, a4, a5, a6, a7, a8, a9, a10) {
+      var sp = stackSave();
+      try {
+        getWasmTableEntry(index2)(a1, a2, a3, a4, a5, a6, a7, a8, a9, a10);
+      } catch (e) {
+        stackRestore(sp);
+        if (!(e instanceof EmscriptenEH))
+          throw e;
+        _setThrew(1, 0);
+      }
+    }
+    function invoke_viiiiiiiiiiiiiii(index2, a1, a2, a3, a4, a5, a6, a7, a8, a9, a10, a11, a12, a13, a14, a15) {
+      var sp = stackSave();
+      try {
+        getWasmTableEntry(index2)(a1, a2, a3, a4, a5, a6, a7, a8, a9, a10, a11, a12, a13, a14, a15);
+      } catch (e) {
+        stackRestore(sp);
+        if (!(e instanceof EmscriptenEH))
+          throw e;
+        _setThrew(1, 0);
+      }
+    }
+    function invoke_j(index2) {
+      var sp = stackSave();
+      try {
+        return dynCall_j(index2);
+      } catch (e) {
+        stackRestore(sp);
+        if (!(e instanceof EmscriptenEH))
+          throw e;
+        _setThrew(1, 0);
+      }
+    }
+    function invoke_jiiii(index2, a1, a2, a3, a4) {
+      var sp = stackSave();
+      try {
+        return dynCall_jiiii(index2, a1, a2, a3, a4);
+      } catch (e) {
+        stackRestore(sp);
+        if (!(e instanceof EmscriptenEH))
+          throw e;
+        _setThrew(1, 0);
+      }
+    }
     var missingLibrarySymbols = [
       "stringToNewUTF8",
       "exitJS",
@@ -13287,8 +13850,6 @@ var Module = (() => {
       "getPromise",
       "makePromise",
       "makePromiseCallback",
-      "exception_addRef",
-      "exception_decRef",
       "setMainLoop",
       "_setNetworkCallback",
       "heapObjectForWebGLType",
@@ -13413,6 +13974,12 @@ var Module = (() => {
       "exceptionLast",
       "exceptionCaught",
       "ExceptionInfo",
+      "exception_addRef",
+      "exception_decRef",
+      "getExceptionMessageCommon",
+      "incrementExceptionRefcount",
+      "decrementExceptionRefcount",
+      "getExceptionMessage",
       "Browser",
       "wget",
       "FS",
@@ -13577,24 +14144,24 @@ var Module = (() => {
     return Module2.ready;
   };
 })();
-async function loadWasmBinary(urlOrString) {
+async function loadWasmFile(urlOrString) {
   const response = await fetch(urlOrString);
   if (!response.ok) {
-    throw new Error(`Could not fetch WASM file from "${urlOrString}"`);
+    throw new Error(`Could not fetch file from "${urlOrString}"`);
   }
   const arrayBuffer = await response.arrayBuffer();
   return new Uint8Array(arrayBuffer);
 }
-const DefaultWasmBinaryLoader = async () => {
-  const url = new URL("./wasm-build/main.wasm", self.location);
+const DefaultWasmFileLoader = async (filename) => {
+  const url = new URL("./wasm-build/" + filename, import.meta.url);
   try {
-    return await loadWasmBinary(url);
+    return await loadWasmFile(url);
   } catch {
     return await Deno.readFile(url);
   }
 };
 class InternalSignDetector {
-  constructor(wasmBinaryLoader = DefaultWasmBinaryLoader) {
+  constructor(wasmFileLoader = DefaultWasmFileLoader) {
     Object.defineProperty(this, "loaded", {
       enumerable: true,
       configurable: true,
@@ -13608,7 +14175,7 @@ class InternalSignDetector {
       value: void 0
     });
     this.loaded = (async () => {
-      const wasmBinary = await wasmBinaryLoader();
+      const wasmBinary = await wasmFileLoader("main.wasm");
       this.wasmInstance = await Module({ wasmBinary });
     })();
   }
@@ -13644,14 +14211,14 @@ class InternalSignDetector {
   }
 }
 class MainThreadedSignDetector {
-  constructor(wasmBinaryLoader) {
+  constructor(wasmFileLoader) {
     Object.defineProperty(this, "internalSignDetector", {
       enumerable: true,
       configurable: true,
       writable: true,
       value: void 0
     });
-    this.internalSignDetector = new InternalSignDetector(wasmBinaryLoader);
+    this.internalSignDetector = new InternalSignDetector(wasmFileLoader);
   }
   async start() {
     await this.internalSignDetector.loaded;
@@ -13676,15 +14243,15 @@ class MainThreadedSignDetector {
   }
 }
 function WorkerWrapper() {
-  return new Worker("" + new URL("multi-threaded-worker-9a306097.js", import.meta.url).href);
+  return new Worker("" + new URL("multi-threaded-worker-c5812f40.js", import.meta.url).href);
 }
 function createMultiThreadedSignDetector() {
   const threadCount = 3;
   return new MultiThreadedSignDetector(threadCount, WorkerWrapper);
 }
 function createMainThreadedSignDetector() {
-  return new MainThreadedSignDetector(() => {
-    return loadWasmBinary("assets/main.wasm");
+  return new MainThreadedSignDetector((filename) => {
+    return loadWasmFile(`assets/${filename}`);
   });
 }
 function useSignDetector(useMultithreading) {
