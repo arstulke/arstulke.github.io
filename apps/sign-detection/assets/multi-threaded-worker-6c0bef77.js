@@ -157,7 +157,7 @@
     });
   }
   var Module = (() => {
-    var _scriptDir = document.currentScript && document.currentScript.src || new URL("assets/multi-threaded-worker-cb5216c5.js", document.baseURI).href;
+    var _scriptDir = document.currentScript && document.currentScript.src || new URL("assets/multi-threaded-worker-6c0bef77.js", document.baseURI).href;
     return function(Module2 = {}) {
       var Module2 = typeof Module2 != "undefined" ? Module2 : {};
       var readyPromiseResolve, readyPromiseReject;
@@ -5341,6 +5341,17 @@
           _setThrew(1, 0);
         }
       }
+      function invoke_iiii(index, a1, a2, a3) {
+        var sp = stackSave();
+        try {
+          return getWasmTableEntry(index)(a1, a2, a3);
+        } catch (e) {
+          stackRestore(sp);
+          if (!(e instanceof EmscriptenEH))
+            throw e;
+          _setThrew(1, 0);
+        }
+      }
       function invoke_viiii(index, a1, a2, a3, a4) {
         var sp = stackSave();
         try {
@@ -5411,17 +5422,6 @@
         var sp = stackSave();
         try {
           return getWasmTableEntry(index)(a1, a2);
-        } catch (e) {
-          stackRestore(sp);
-          if (!(e instanceof EmscriptenEH))
-            throw e;
-          _setThrew(1, 0);
-        }
-      }
-      function invoke_iiii(index, a1, a2, a3) {
-        var sp = stackSave();
-        try {
-          return getWasmTableEntry(index)(a1, a2, a3);
         } catch (e) {
           stackRestore(sp);
           if (!(e instanceof EmscriptenEH))
@@ -5528,7 +5528,7 @@
           _setThrew(1, 0);
         }
       }
-      function invoke_viiiidiiii(index, a1, a2, a3, a4, a5, a6, a7, a8, a9) {
+      function invoke_viiiiiiiii(index, a1, a2, a3, a4, a5, a6, a7, a8, a9) {
         var sp = stackSave();
         try {
           getWasmTableEntry(index)(a1, a2, a3, a4, a5, a6, a7, a8, a9);
@@ -5539,7 +5539,7 @@
           _setThrew(1, 0);
         }
       }
-      function invoke_viiiiiiiii(index, a1, a2, a3, a4, a5, a6, a7, a8, a9) {
+      function invoke_viiiidiiii(index, a1, a2, a3, a4, a5, a6, a7, a8, a9) {
         var sp = stackSave();
         try {
           getWasmTableEntry(index)(a1, a2, a3, a4, a5, a6, a7, a8, a9);
@@ -6135,7 +6135,7 @@
     return new Uint8Array(arrayBuffer);
   }
   const DefaultWasmFileLoader = async (filename) => {
-    const url = new URL("./wasm-build/" + filename, document.currentScript && document.currentScript.src || new URL("assets/multi-threaded-worker-cb5216c5.js", document.baseURI).href);
+    const url = new URL("./wasm-build/" + filename, document.currentScript && document.currentScript.src || new URL("assets/multi-threaded-worker-6c0bef77.js", document.baseURI).href);
     try {
       return await loadWasmFile(url);
     } catch {

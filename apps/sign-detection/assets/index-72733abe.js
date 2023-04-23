@@ -13395,6 +13395,17 @@ var Module = (() => {
         _setThrew(1, 0);
       }
     }
+    function invoke_iiii(index2, a1, a2, a3) {
+      var sp = stackSave();
+      try {
+        return getWasmTableEntry(index2)(a1, a2, a3);
+      } catch (e) {
+        stackRestore(sp);
+        if (!(e instanceof EmscriptenEH))
+          throw e;
+        _setThrew(1, 0);
+      }
+    }
     function invoke_viiii(index2, a1, a2, a3, a4) {
       var sp = stackSave();
       try {
@@ -13465,17 +13476,6 @@ var Module = (() => {
       var sp = stackSave();
       try {
         return getWasmTableEntry(index2)(a1, a2);
-      } catch (e) {
-        stackRestore(sp);
-        if (!(e instanceof EmscriptenEH))
-          throw e;
-        _setThrew(1, 0);
-      }
-    }
-    function invoke_iiii(index2, a1, a2, a3) {
-      var sp = stackSave();
-      try {
-        return getWasmTableEntry(index2)(a1, a2, a3);
       } catch (e) {
         stackRestore(sp);
         if (!(e instanceof EmscriptenEH))
@@ -13582,7 +13582,7 @@ var Module = (() => {
         _setThrew(1, 0);
       }
     }
-    function invoke_viiiidiiii(index2, a1, a2, a3, a4, a5, a6, a7, a8, a9) {
+    function invoke_viiiiiiiii(index2, a1, a2, a3, a4, a5, a6, a7, a8, a9) {
       var sp = stackSave();
       try {
         getWasmTableEntry(index2)(a1, a2, a3, a4, a5, a6, a7, a8, a9);
@@ -13593,7 +13593,7 @@ var Module = (() => {
         _setThrew(1, 0);
       }
     }
-    function invoke_viiiiiiiii(index2, a1, a2, a3, a4, a5, a6, a7, a8, a9) {
+    function invoke_viiiidiiii(index2, a1, a2, a3, a4, a5, a6, a7, a8, a9) {
       var sp = stackSave();
       try {
         getWasmTableEntry(index2)(a1, a2, a3, a4, a5, a6, a7, a8, a9);
@@ -14279,7 +14279,7 @@ class MainThreadedSignDetector {
   }
 }
 function WorkerWrapper() {
-  return new Worker("" + new URL("multi-threaded-worker-cb5216c5.js", import.meta.url).href);
+  return new Worker("" + new URL("multi-threaded-worker-6c0bef77.js", import.meta.url).href);
 }
 function createMultiThreadedSignDetector() {
   const threadCount = 3;
