@@ -13373,10 +13373,10 @@ var Module = (() => {
     Module2["dynCall_iiiiij"] = createExportWrapper("dynCall_iiiiij");
     Module2["dynCall_iiiiijj"] = createExportWrapper("dynCall_iiiiijj");
     Module2["dynCall_iiiiiijj"] = createExportWrapper("dynCall_iiiiiijj");
-    function invoke_vii(index2, a1, a2) {
+    function invoke_iiii(index2, a1, a2, a3) {
       var sp = stackSave();
       try {
-        getWasmTableEntry(index2)(a1, a2);
+        return getWasmTableEntry(index2)(a1, a2, a3);
       } catch (e) {
         stackRestore(sp);
         if (!(e instanceof EmscriptenEH))
@@ -13395,10 +13395,10 @@ var Module = (() => {
         _setThrew(1, 0);
       }
     }
-    function invoke_iiii(index2, a1, a2, a3) {
+    function invoke_viiidd(index2, a1, a2, a3, a4, a5) {
       var sp = stackSave();
       try {
-        return getWasmTableEntry(index2)(a1, a2, a3);
+        getWasmTableEntry(index2)(a1, a2, a3, a4, a5);
       } catch (e) {
         stackRestore(sp);
         if (!(e instanceof EmscriptenEH))
@@ -13410,39 +13410,6 @@ var Module = (() => {
       var sp = stackSave();
       try {
         getWasmTableEntry(index2)(a1, a2, a3, a4);
-      } catch (e) {
-        stackRestore(sp);
-        if (!(e instanceof EmscriptenEH))
-          throw e;
-        _setThrew(1, 0);
-      }
-    }
-    function invoke_vi(index2, a1) {
-      var sp = stackSave();
-      try {
-        getWasmTableEntry(index2)(a1);
-      } catch (e) {
-        stackRestore(sp);
-        if (!(e instanceof EmscriptenEH))
-          throw e;
-        _setThrew(1, 0);
-      }
-    }
-    function invoke_viiiiiii(index2, a1, a2, a3, a4, a5, a6, a7) {
-      var sp = stackSave();
-      try {
-        getWasmTableEntry(index2)(a1, a2, a3, a4, a5, a6, a7);
-      } catch (e) {
-        stackRestore(sp);
-        if (!(e instanceof EmscriptenEH))
-          throw e;
-        _setThrew(1, 0);
-      }
-    }
-    function invoke_i(index2) {
-      var sp = stackSave();
-      try {
-        return getWasmTableEntry(index2)();
       } catch (e) {
         stackRestore(sp);
         if (!(e instanceof EmscriptenEH))
@@ -13472,10 +13439,32 @@ var Module = (() => {
         _setThrew(1, 0);
       }
     }
-    function invoke_dii(index2, a1, a2) {
+    function invoke_viiiiiii(index2, a1, a2, a3, a4, a5, a6, a7) {
       var sp = stackSave();
       try {
-        return getWasmTableEntry(index2)(a1, a2);
+        getWasmTableEntry(index2)(a1, a2, a3, a4, a5, a6, a7);
+      } catch (e) {
+        stackRestore(sp);
+        if (!(e instanceof EmscriptenEH))
+          throw e;
+        _setThrew(1, 0);
+      }
+    }
+    function invoke_vii(index2, a1, a2) {
+      var sp = stackSave();
+      try {
+        getWasmTableEntry(index2)(a1, a2);
+      } catch (e) {
+        stackRestore(sp);
+        if (!(e instanceof EmscriptenEH))
+          throw e;
+        _setThrew(1, 0);
+      }
+    }
+    function invoke_vi(index2, a1) {
+      var sp = stackSave();
+      try {
+        getWasmTableEntry(index2)(a1);
       } catch (e) {
         stackRestore(sp);
         if (!(e instanceof EmscriptenEH))
@@ -13505,50 +13494,6 @@ var Module = (() => {
         _setThrew(1, 0);
       }
     }
-    function invoke_viiiddi(index2, a1, a2, a3, a4, a5, a6) {
-      var sp = stackSave();
-      try {
-        getWasmTableEntry(index2)(a1, a2, a3, a4, a5, a6);
-      } catch (e) {
-        stackRestore(sp);
-        if (!(e instanceof EmscriptenEH))
-          throw e;
-        _setThrew(1, 0);
-      }
-    }
-    function invoke_viidd(index2, a1, a2, a3, a4) {
-      var sp = stackSave();
-      try {
-        getWasmTableEntry(index2)(a1, a2, a3, a4);
-      } catch (e) {
-        stackRestore(sp);
-        if (!(e instanceof EmscriptenEH))
-          throw e;
-        _setThrew(1, 0);
-      }
-    }
-    function invoke_viiiiii(index2, a1, a2, a3, a4, a5, a6) {
-      var sp = stackSave();
-      try {
-        getWasmTableEntry(index2)(a1, a2, a3, a4, a5, a6);
-      } catch (e) {
-        stackRestore(sp);
-        if (!(e instanceof EmscriptenEH))
-          throw e;
-        _setThrew(1, 0);
-      }
-    }
-    function invoke_viiid(index2, a1, a2, a3, a4) {
-      var sp = stackSave();
-      try {
-        getWasmTableEntry(index2)(a1, a2, a3, a4);
-      } catch (e) {
-        stackRestore(sp);
-        if (!(e instanceof EmscriptenEH))
-          throw e;
-        _setThrew(1, 0);
-      }
-    }
     function invoke_di(index2, a1) {
       var sp = stackSave();
       try {
@@ -13560,10 +13505,10 @@ var Module = (() => {
         _setThrew(1, 0);
       }
     }
-    function invoke_viidi(index2, a1, a2, a3, a4) {
+    function invoke_iidddd(index2, a1, a2, a3, a4, a5) {
       var sp = stackSave();
       try {
-        getWasmTableEntry(index2)(a1, a2, a3, a4);
+        return getWasmTableEntry(index2)(a1, a2, a3, a4, a5);
       } catch (e) {
         stackRestore(sp);
         if (!(e instanceof EmscriptenEH))
@@ -13571,10 +13516,10 @@ var Module = (() => {
         _setThrew(1, 0);
       }
     }
-    function invoke_iidddd(index2, a1, a2, a3, a4, a5) {
+    function invoke_i(index2) {
       var sp = stackSave();
       try {
-        return getWasmTableEntry(index2)(a1, a2, a3, a4, a5);
+        return getWasmTableEntry(index2)();
       } catch (e) {
         stackRestore(sp);
         if (!(e instanceof EmscriptenEH))
@@ -13604,10 +13549,32 @@ var Module = (() => {
         _setThrew(1, 0);
       }
     }
-    function invoke_iiiiiii(index2, a1, a2, a3, a4, a5, a6) {
+    function invoke_viidd(index2, a1, a2, a3, a4) {
       var sp = stackSave();
       try {
-        return getWasmTableEntry(index2)(a1, a2, a3, a4, a5, a6);
+        getWasmTableEntry(index2)(a1, a2, a3, a4);
+      } catch (e) {
+        stackRestore(sp);
+        if (!(e instanceof EmscriptenEH))
+          throw e;
+        _setThrew(1, 0);
+      }
+    }
+    function invoke_viidi(index2, a1, a2, a3, a4) {
+      var sp = stackSave();
+      try {
+        getWasmTableEntry(index2)(a1, a2, a3, a4);
+      } catch (e) {
+        stackRestore(sp);
+        if (!(e instanceof EmscriptenEH))
+          throw e;
+        _setThrew(1, 0);
+      }
+    }
+    function invoke_dii(index2, a1, a2) {
+      var sp = stackSave();
+      try {
+        return getWasmTableEntry(index2)(a1, a2);
       } catch (e) {
         stackRestore(sp);
         if (!(e instanceof EmscriptenEH))
@@ -13626,10 +13593,43 @@ var Module = (() => {
         _setThrew(1, 0);
       }
     }
-    function invoke_viiidd(index2, a1, a2, a3, a4, a5) {
+    function invoke_iiiiiii(index2, a1, a2, a3, a4, a5, a6) {
       var sp = stackSave();
       try {
-        getWasmTableEntry(index2)(a1, a2, a3, a4, a5);
+        return getWasmTableEntry(index2)(a1, a2, a3, a4, a5, a6);
+      } catch (e) {
+        stackRestore(sp);
+        if (!(e instanceof EmscriptenEH))
+          throw e;
+        _setThrew(1, 0);
+      }
+    }
+    function invoke_viiiddi(index2, a1, a2, a3, a4, a5, a6) {
+      var sp = stackSave();
+      try {
+        getWasmTableEntry(index2)(a1, a2, a3, a4, a5, a6);
+      } catch (e) {
+        stackRestore(sp);
+        if (!(e instanceof EmscriptenEH))
+          throw e;
+        _setThrew(1, 0);
+      }
+    }
+    function invoke_viiiiii(index2, a1, a2, a3, a4, a5, a6) {
+      var sp = stackSave();
+      try {
+        getWasmTableEntry(index2)(a1, a2, a3, a4, a5, a6);
+      } catch (e) {
+        stackRestore(sp);
+        if (!(e instanceof EmscriptenEH))
+          throw e;
+        _setThrew(1, 0);
+      }
+    }
+    function invoke_viiid(index2, a1, a2, a3, a4) {
+      var sp = stackSave();
+      try {
+        getWasmTableEntry(index2)(a1, a2, a3, a4);
       } catch (e) {
         stackRestore(sp);
         if (!(e instanceof EmscriptenEH))
@@ -14279,7 +14279,7 @@ class MainThreadedSignDetector {
   }
 }
 function WorkerWrapper() {
-  return new Worker("" + new URL("multi-threaded-worker-6c0bef77.js", import.meta.url).href);
+  return new Worker("" + new URL("multi-threaded-worker-04b8b7ab.js", import.meta.url).href);
 }
 function createMultiThreadedSignDetector() {
   const threadCount = 3;
