@@ -1,2 +1,5 @@
-Sitemap: /sitemap-index.xml
+User-agent: *
+Allow: /
 Disallow: /apps/
+
+Sitemap: https://www.arne-stulken.de/sitemap-index.xml
