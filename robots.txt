@@ -1,2 +1,13 @@
-Sitemap: /sitemap-index.xml
+# Anthropic / Claude: full access
+User-agent: ClaudeBot
+User-agent: Claude-User
+User-agent: Claude-SearchBot
+User-agent: anthropic-ai
+Allow: /
+
+# All other crawlers
+User-agent: *
+Allow: /
 Disallow: /apps/
+
+Sitemap: https://www.arne-stulken.de/sitemap-index.xml
